@@ -4,7 +4,8 @@ using namespace std;
 struct Node {
     long long val;
     Node* next;
-    Node(long long v) : val(v), next(nullptr) {}
+    Node* prev;
+    Node(long long v) : val(v), next(nullptr), prev(nullptr) {}
 };
 
 class LinkedList {
@@ -15,8 +16,7 @@ private:
 
 public:
     LinkedList() {
-        head = nullptr;
-        tail = nullptr;
+        head = tail = nullptr;
         size = 0;
     }
 
@@ -26,9 +26,11 @@ public:
             head = tail = node;
         } else if (s == 'f') {
             node->next = head;
+            head->prev = node;
             head = node;
-        } else if (s == 'b') {
+        } else {
             tail->next = node;
+            node->prev = tail;
             tail = node;
         }
         size++;
@@ -41,49 +43,48 @@ public:
             result = head->val;
             Node* temp = head;
             head = head->next;
+            if (head) head->prev = nullptr;
+            else tail = nullptr;
             delete temp;
-            if (!head) tail = nullptr;
-        } else { 
-            if (head == tail) {
-                result = head->val;
-                delete head;
-                head = tail = nullptr;
-            } else {
-                Node* cur = head;
-                while (cur->next != tail) cur = cur->next;
-                result = tail->val;
-                delete tail;
-                tail = cur;
-                tail->next = nullptr;
-            }
+        } else {
+            result = tail->val;
+            Node* temp = tail;
+            tail = tail->prev;
+            if (tail) tail->next = nullptr;
+            else head = nullptr;
+            delete temp;
         }
         size--;
         return result;
     }
 
     void insert(int p, long long v) {
-        if (p == 1) {
+        if (p <= 1) {
             add('f', v);
             return;
         }
+        if (p > size + 1) p = size + 1;
         Node* node = new Node(v);
         Node* cur = head;
         for (int i = 1; i < p - 1; i++) cur = cur->next;
         node->next = cur->next;
+        node->prev = cur;
+        if (cur->next) cur->next->prev = node;
         cur->next = node;
         if (!node->next) tail = node;
         size++;
     }
 
     long long removeAt(int p) {
+        if (p < 1 || p > size) return -1;
         if (p == 1) return remove('f');
         Node* cur = head;
-        for (int i = 1; i < p - 1; i++) cur = cur->next;
-        Node* temp = cur->next;
-        long long val = temp->val;
-        cur->next = temp->next;
-        if (temp == tail) tail = cur;
-        delete temp;
+        for (int i = 1; i < p; i++) cur = cur->next;
+        long long val = cur->val;
+        if (cur->prev) cur->prev->next = cur->next;
+        if (cur->next) cur->next->prev = cur->prev;
+        if (cur == tail) tail = cur->prev;
+        delete cur;
         size--;
         return val;
     }
@@ -100,6 +101,7 @@ public:
     }
 
     long long get(int p) {
+        if (p < 1 || p > size) return -1;
         Node* cur = head;
         for (int i = 1; i < p; i++) cur = cur->next;
         return cur->val;
@@ -114,7 +116,7 @@ int main() {
     cin >> q;
     LinkedList list;
 
-    long long output[2*105];
+    long long output[400005];
     int idx = 0;
 
     while (q--) {
